@@ -74,7 +74,7 @@ def load_csvs(dev_sample: bool = True, n_sample: int = 200_000) -> tuple[pd.Data
     project_root = Path(__file__).resolve().parents[1]
 
     base_path = project_root / "data" / "cleaned" / "SGJobData_cleaned_stage1_sample.csv"
-    sal_path  = project_root / "data" / "cleaned" / "SGJobData_salary_eda_tidy.csv"
+    sal_path  = project_root / "data" / "cleaned" / "SGJobData_salary_eda_tidy_sample.csv"
 
     # If full dataset is missing (like on Streamlit Cloud), fall back to sample files
     if not base_path.exists():
