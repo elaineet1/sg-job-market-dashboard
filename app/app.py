@@ -73,8 +73,19 @@ def load_csvs(dev_sample: bool = True, n_sample: int = 200_000) -> tuple[pd.Data
     """Load CSVs and preprocess once (cached)."""
     project_root = Path(__file__).resolve().parents[1]
 
-    df_base = pd.read_csv(project_root / "data" / "cleaned" / "SGJobData_cleaned_stage1.csv")
-    df_sal = pd.read_csv(project_root / "data" / "cleaned" / "SGJobData_salary_eda_tidy.csv")
+base_path = project_root / "data" / "cleaned" / "SGJobData_cleaned_stage1.csv"
+sal_path  = project_root / "data" / "cleaned" / "SGJobData_salary_eda_tidy.csv"
+
+# If full dataset is missing (like on Streamlit Cloud), fall back to sample files
+if not base_path.exists():
+    base_path = project_root / "data" / "sample" / "SGJobData_cleaned_stage1_sample.csv"
+
+if not sal_path.exists():
+    sal_path = project_root / "data" / "sample" / "SGJobData_salary_eda_tidy_sample.csv"
+
+df_base = pd.read_csv(base_path)
+df_sal  = pd.read_csv(sal_path)
+
 
     # TEMP: reduce size to keep WSL stable while developing
     if dev_sample:
