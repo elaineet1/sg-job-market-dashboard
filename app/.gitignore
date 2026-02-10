@@ -1,0 +1,17 @@
+# datasets (ignore big data, allow sample only)
+data/*
+!data/sample/
+!data/sample/*
+
+
+# python + notebooks
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+*.ipynb
+
+# env
+.venv/
+.env
+
+

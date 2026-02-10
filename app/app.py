@@ -73,18 +73,27 @@ def load_csvs(dev_sample: bool = True, n_sample: int = 200_000) -> tuple[pd.Data
     """Load CSVs and preprocess once (cached)."""
     project_root = Path(__file__).resolve().parents[1]
 
-base_path = project_root / "data" / "cleaned" / "SGJobData_cleaned_stage1.csv"
-sal_path  = project_root / "data" / "cleaned" / "SGJobData_salary_eda_tidy.csv"
+    base_path = project_root / "data" / "cleaned" / "SGJobData_cleaned_stage1.csv"
+    sal_path  = project_root / "data" / "cleaned" / "SGJobData_salary_eda_tidy.csv"
 
-# If full dataset is missing (like on Streamlit Cloud), fall back to sample files
-if not base_path.exists():
-    base_path = project_root / "data" / "sample" / "SGJobData_cleaned_stage1_sample.csv"
+    # If full dataset is missing (like on Streamlit Cloud), fall back to sample files
+    if not base_path.exists():
+        base_path = project_root / "data" / "sample" / "SGJobData_cleaned_stage1_sample.csv"
 
-if not sal_path.exists():
-    sal_path = project_root / "data" / "sample" / "SGJobData_salary_eda_tidy_sample.csv"
+    if not sal_path.exists():
+        sal_path = project_root / "data" / "sample" / "SGJobData_salary_eda_tidy_sample.csv"
 
-df_base = pd.read_csv(base_path)
-df_sal  = pd.read_csv(sal_path)
+    df_base = pd.read_csv(base_path)
+    df_sal  = pd.read_csv(sal_path)
+
+    # TEMP: reduce size to keep WSL stable while developing
+    if dev_sample:
+        df_base = df_base.sample(n=min(n_sample, len(df_base)), random_state=42)
+        df_sal  = df_sal.sample(n=min(n_sample, len(df_sal)), random_state=42)
+
+    # keep the rest of your existing preprocessing below (category cleaning etc.)
+    return df_base, df_sal
+
 
 
     # TEMP: reduce size to keep WSL stable while developing
@@ -114,6 +123,36 @@ df_sal  = pd.read_csv(sal_path)
 # Toggle: keep dev_sample True until you deploy
 DEV_SAMPLE = True  # set to False when deploying
 df, df_salary = load_csvs(dev_sample=DEV_SAMPLE, n_sample=200_000)
+
+# ---- Ensure chosen date columns are datetime for charts ----
+date_col_df = None
+for c in ["new_posting_date", "original_posting_date", "metadata_newPostingDate", "metadata_originalPostingDate"]:
+    if c in df.columns:
+        date_col_df = c
+        break
+
+if date_col_df:
+    df[date_col_df] = pd.to_datetime(df[date_col_df], errors="coerce")
+
+date_col_sal = None
+for c in ["new_posting_date", "original_posting_date", "expiry_dat"]:
+    if c in df_salary.columns:
+        date_col_sal = c
+        break
+
+if date_col_sal:
+    df_salary[date_col_sal] = pd.to_datetime(df_salary[date_col_sal], errors="coerce")
+
+# ---- Ensure category_name exists in df_salary ----
+if "category_name" not in df_salary.columns:
+    if "category" in df_salary.columns:
+        df_salary["category_name"] = df_salary["category"].apply(extract_category_names)
+        df_salary = df_salary.explode("category_name")
+        df_salary["category_name"] = df_salary["category_name"].astype(str).str.strip()
+        df_salary = df_salary[df_salary["category_name"] != ""]
+    else:
+        # last-resort fallback (prevents app from crashing)
+        df_salary["category_name"] = "Unknown"
 
 
 # ----------------------------
@@ -286,7 +325,19 @@ with tab1:
         st.plotly_chart(fig, use_container_width=True)
 
     with st.expander("Preview filtered data (first 200 rows)"):
-        st.dataframe(df_salary_f.head(200), use_container_width=True)
+        preview = df_salary_f.copy()
+
+    # Drop the messy raw category column if we have cleaned names
+    if "category_name" in preview.columns:
+        preview = preview.drop(columns=["category"], errors="ignore")
+
+        # Move category_name to the FIRST column
+        cols = ["category_name"] + [c for c in preview.columns if c != "category_name"]
+        preview = preview[cols]
+
+    st.dataframe(preview.head(200), use_container_width=True)
+
+
 
 
 # ===== Tab 2: Salary Benchmarks =====
@@ -399,3 +450,4 @@ with tab3:
                 .style.format({"applications_per_100_views": "{:.2f}"}),
                 use_container_width=True,
             )
+
