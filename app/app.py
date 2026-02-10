@@ -6,7 +6,7 @@ Business objective:
 - Jobseekers: shortlist higher pay roles, prioritise less competitive areas
 
 Data files:
-- data/cleaned/SGJobData_cleaned_stage1.csv   (base df, demand/trend)
+- data/cleaned/SGJobData_cleaned_stage1_sample.csv   (base df, demand/trend)
 - data/cleaned/SGJobData_salary_eda_tidy.csv  (salary df_salary, salary/competition)
 """
 
